@@ -84,6 +84,8 @@ button:disabled{opacity:.45;cursor:not-allowed}
 .final{border:1px solid var(--line);border-radius:10px;padding:10px 12px;background:var(--panel);font-size:13px}
 .final.ok{border-color:color-mix(in srgb,var(--ok) 50%,var(--line))}
 .final.err{border-color:color-mix(in srgb,var(--err) 50%,var(--line))}
+.final.warn{border-color:color-mix(in srgb,var(--tool) 50%,var(--line))}
+.final .why{display:block;margin-top:2px;font-size:12px;color:var(--muted)}
 .final pre{margin:6px 0 0;white-space:pre-wrap;font:12px/1.55 var(--mono);color:var(--muted)}
 .log{display:grid;grid-template-columns:70px 56px 1fr;gap:10px;padding:5px 0;border-bottom:1px solid var(--line);font:12px/1.55 var(--mono)}
 .log .t{color:var(--faint)}.log .k{font-weight:700;color:var(--muted)}
@@ -175,7 +177,7 @@ function apply(ev) {
     case 'run':
       if (d.task) state.task = d.task;
       if (/^Run (finished|failed)/.test(ev.message)) {
-        state.final = {ok: ev.level !== 'ERROR' && d.success !== false, message: ev.message, result: d.final_result};
+        state.final = {tone: ev.level === 'ERROR' || d.success === false ? 'err' : d.success === true ? 'ok' : 'warn', message: ev.message, result: d.final_result};
         setStatus(ev.level === 'ERROR' ? 'failed' : 'finished');
       } else setStatus('running');
       break;
@@ -226,7 +228,8 @@ function render() {
     if (state.task) { const t = el('p', 'task'); t.append(el('b', null, 'Task '), state.task); timelineEl.append(t); }
     for (const key of state.order) timelineEl.append(renderStep(state.steps.get(key)));
     if (state.final) {
-      const f = el('div', `final ${state.final.ok ? 'ok' : 'err'}`, state.final.message);
+      const f = el('div', `final ${state.final.tone}`, state.final.message);
+      if (state.final.tone === 'warn') f.append(el('span', 'why', 'done 액션 없이 끝났습니다 (max steps 도달 또는 중단). 작업이 완료되지 않았습니다.'));
       if (state.final.result) f.append(el('pre', null, state.final.result));
       timelineEl.append(f);
     }
@@ -236,19 +239,30 @@ function render() {
 }
 
 function renderStep(s) {
-  const info = s.info?.data, hasErr = s.tools.some(t => t.result?.error || t.end?.kind === 'tool_error');
+  const info = s.info?.data;
+  // Errors with no matching tool row come from the step itself, e.g. an LLM reply that failed AgentOutput validation.
+  const stepErrors = (info?.results || []).filter((r, i) => r.error && !s.tools[i]).map(r => r.error);
+  const hasErr = stepErrors.length > 0 || s.tools.some(t => t.result?.error || t.end?.kind === 'tool_error');
   const box = el('div', `step${hasErr ? ' err' : ''}`);
   const head = el('div', 'step-head');
   head.append(el('span', 'n', s.n === 0 ? 'Initial actions' : `Step ${s.n}`), el('span', 'url', info?.url ?? ''), el('span', 'dur', fmtDur(info?.duration_seconds)));
   box.append(head);
   if (info?.next_goal) { const g = el('div', 'goal'); g.append(el('b', null, 'Next goal · '), info.next_goal); box.append(g); }
   for (const c of s.llm) {
-    const r = el('div', 'row llm'), main = el('div', 'main');
+    const llmErr = !c.response && stepErrors.length ? stepErrors.splice(0).join('\n') : null;
+    const r = el('div', `row llm${llmErr ? ' error' : ''}`), main = el('div', 'main');
     main.append(el('div', 'title', c.query.message));
     if (c.response) main.append(el('div', 'detail', '→ ' + c.response.data.actions.map(a => { const [k, v] = Object.entries(a)[0] ?? ['?', {}]; return `${k} ${short(v, 120)}`; }).join('\n→ ')));
+    if (llmErr) main.append(el('div', 'detail err', short(llmErr, 600)));
     const meta = el('div', 'meta', c.response ? fmtDur(c.response.data.duration_seconds) : '');
-    meta.append(el('span', `status ${c.response ? 'ok' : state.final ? 'err' : 'pending'}`));
+    meta.append(el('span', `status ${c.response ? 'ok' : llmErr || state.final ? 'err' : 'pending'}`));
     r.append(el('span', 'tag', 'LLM'), main, meta);
+    box.append(r);
+  }
+  if (stepErrors.length) {
+    const r = el('div', 'row error'), main = el('div', 'main');
+    main.append(el('div', 'title', 'Step error'), el('div', 'detail err', short(stepErrors.join('\n'), 600)));
+    r.append(el('span', 'tag', 'STEP'), main, el('div', 'meta'));
     box.append(r);
   }
   for (const t of s.tools) {
