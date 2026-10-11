@@ -25,6 +25,8 @@ if TYPE_CHECKING:
 	from browser_use.llm.base import BaseChatModel
 
 APP_DIR = Path(__file__).resolve().parent
+# Both agent dashboards serve the same paths on the same port; make browsers revalidate instead of reusing the other one's page.
+NO_CACHE = {'Cache-Control': 'no-cache'}
 RUNS_DIR = APP_DIR / 'runs'
 load_dotenv(APP_DIR.parents[2] / '.env')
 
@@ -298,12 +300,12 @@ app = FastAPI(title='Browser Use Agent Observatory')
 
 @app.get('/')
 async def index() -> FileResponse:
-	return FileResponse(APP_DIR / 'static' / 'index.html')
+	return FileResponse(APP_DIR / 'static' / 'index.html', headers=NO_CACHE)
 
 
 @app.get('/architecture')
 async def architecture() -> FileResponse:
-	return FileResponse(APP_DIR / 'static' / 'agent-architecture.html')
+	return FileResponse(APP_DIR / 'static' / 'agent-architecture.html', headers=NO_CACHE)
 
 
 @app.get('/api/status')
