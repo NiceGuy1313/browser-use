@@ -47,7 +47,7 @@ The `step` event is the source of truth for whether an action succeeded. Most ac
 
 ## Regenerating the diagram
 
-`static/agent-architecture.html` is a self-contained Archify export and needs no build step. Its source spec (`agent-architecture.json`) isn't in the repo yet. Once it's added, regenerate the HTML with:
+`static/agent-architecture.html` is a self-contained Archify export generated from `agent-architecture.json`. The server serves it as-is, so there's no build step. After editing the spec, regenerate the HTML:
 
 ```bash
 node /path/to/archify/bin/archify.mjs deliver architecture \
@@ -55,3 +55,5 @@ node /path/to/archify/bin/archify.mjs deliver architecture \
   examples/ui/agent_dashboard/static/agent-architecture.html \
   --quality showcase --json
 ```
+
+The source links on each node point to `meta.repository.revision` in the spec, which is the fork commit whose line numbers match the `sources[].line` values. If you edit `browser_use/agent/service.py` or `browser_use/tools/registry/service.py`, update those line numbers and the revision together.

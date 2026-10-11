@@ -86,5 +86,6 @@ plot.py
 
 .claude/
 
-# Agent dashboard run traces
+# Agent dashboard: ignore run traces, keep the Archify spec
 examples/ui/agent_dashboard/runs/
+!examples/ui/agent_dashboard/agent-architecture.json

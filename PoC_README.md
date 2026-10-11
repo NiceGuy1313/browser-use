@@ -61,7 +61,7 @@ uv run uvicorn examples.ui.agent_dashboard.app:app --port 8000
 | tool 실행 로그 (`[TOOL_EXECUTION_START/END/ERROR]`) | `browser_use/tools/registry/service.py` → `Registry.execute_action` |
 | 대시보드 서버 (로그 → 구조화 이력, SSE, export) | `examples/ui/agent_dashboard/app.py` |
 | 화면 | `examples/ui/agent_dashboard/static/index.html` |
-| Archify 구조도 | `examples/ui/agent_dashboard/static/agent-architecture.html` |
+| Archify 구조도 | `examples/ui/agent_dashboard/agent-architecture.json`(원본 spec) → `static/agent-architecture.html`(생성 결과) |
 
 API 키나 `sensitive_data` 값은 로그에 남기 전에 `<secret>키이름</secret>`으로 치환됩니다. API 키는 서버에서만 읽고 브라우저로 보내지 않습니다.
 
@@ -72,6 +72,5 @@ API 키나 `sensitive_data` 값은 로그에 남기 전에 `<secret>키이름</s
 - **LLM이 잘못된 파라미터를 보내 검증에 실패하면** tool 로그가 아예 안 남습니다.
 - **LLM 소요 시간에는 SDK 내부 재시도 시간이 포함됩니다.** `[LLM_QUERY]` 1건이 실제 HTTP 요청 여러 번일 수 있습니다.
 - `browser_use.beta.Agent`는 다른 실행 경로를 써서 이 대시보드에 안 잡힙니다.
-- Archify 구조도의 원본 spec(`agent-architecture.json`)은 아직 저장소에 없습니다. 구조도를 수정하려면 원본이 필요합니다.
 
 더 자세한 내부 동작은 `examples/ui/agent_dashboard/README.md`를 보세요.

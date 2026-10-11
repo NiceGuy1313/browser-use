@@ -1,0 +1,45 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "Browser Use Agent Loop",
+    "quality_profile": "showcase",
+    "viewBox": [1320, 720],
+    "repository": {
+      "url": "https://github.com/NiceGuy1313/browser-use",
+      "provider": "github",
+      "link_mode": "web",
+      "revision": "11fc1b88265289c9d0032bf03c0a57d5095efc35"
+    }
+  },
+  "components": [
+    {"id":"task","type":"external","label":"Task","sublabel":"dashboard input","pos":[40,280],"size":[130,64]},
+    {"id":"run","type":"backend","label":"Agent.run","sublabel":"main step loop","pos":[220,280],"size":[150,64],"sources":[{"path":"browser_use/agent/service.py","line":2522,"label":"run loop"}]},
+    {"id":"context","type":"frontend","label":"Browser Context","sublabel":"DOM + screenshot + history","pos":[420,110],"size":[190,72],"sources":[{"path":"browser_use/agent/service.py","line":1089,"label":"prepare context"}]},
+    {"id":"llm","type":"cloud","label":"LLM Query","sublabel":"Claude structured output","pos":[420,280],"size":[190,72],"tag":"[LLM_QUERY]","sources":[{"path":"browser_use/agent/service.py","line":1947,"label":"model boundary"}]},
+    {"id":"actions","type":"messagebus","label":"Multi-action Output","sublabel":"up to max_actions_per_step","pos":[680,280],"size":[210,72],"tag":"[LLM_RESPONSE]","sources":[{"path":"browser_use/agent/service.py","line":1971,"label":"action cap"}]},
+    {"id":"multiAct","type":"backend","label":"multi_act","sublabel":"sequential for-loop","pos":[950,280],"size":[170,72],"tag":"page-change guards","sources":[{"path":"browser_use/agent/service.py","line":2749,"end_line":2835,"label":"sequential executor"}]},
+    {"id":"tool","type":"security","label":"Tool Boundary","sublabel":"validated action.function","pos":[950,470],"size":[190,72],"tag":"[TOOL_EXECUTION_*]","sources":[{"path":"browser_use/tools/registry/service.py","line":337,"end_line":421,"label":"tool execution"}]},
+    {"id":"browser","type":"frontend","label":"Browser / World","sublabel":"CDP interaction","pos":[680,470],"size":[190,72]},
+    {"id":"history","type":"database","label":"History + Result","sublabel":"next-step memory","pos":[420,470],"size":[190,72],"sources":[{"path":"browser_use/agent/service.py","line":1079,"label":"post process"}]}
+  ],
+  "boundaries": [
+    {"kind":"region","label":"one agent step","wraps":["context","llm","actions","multiAct","tool","browser","history"],"pad":28}
+  ],
+  "connections": [
+    {"from":"task","to":"run","label":"start","variant":"emphasis"},
+    {"from":"run","to":"context","label":"each step","variant":"emphasis","labelAt":[320,210]},
+    {"from":"context","to":"llm","label":"messages + state","variant":"emphasis","fromSide":"bottom","toSide":"top","labelAt":[508,196]},
+    {"from":"llm","to":"actions","label":"one structured response","variant":"emphasis","labelAt":[645,366]},
+    {"from":"actions","to":"multiAct","label":"action[]","variant":"emphasis"},
+    {"from":"multiAct","to":"tool","label":"await one by one","variant":"emphasis","fromSide":"bottom","toSide":"top"},
+    {"from":"tool","to":"browser","label":"execute action","variant":"emphasis"},
+    {"from":"browser","to":"history","label":"ActionResult","variant":"emphasis"},
+    {"from":"history","to":"context","label":"next step","variant":"dashed","fromSide":"left","toSide":"left","via":[[380,506],[380,146]],"labelAt":[370,358]}
+  ],
+  "cards": [
+    {"dot":"cyan","title":"LLM 경계","items":["한 step마다 브라우저 상태와 이력을 묶어 한 번 질의","응답의 action 배열을 max_actions_per_step으로 제한"]},
+    {"dot":"amber","title":"Multi-action 의미","items":["여러 액션을 한 응답으로 예측","for-loop와 await로 순차 실행","탐색·URL 변경·오류가 생기면 남은 큐 중단"]},
+    {"dot":"emerald","title":"관측 지점","items":["LLM_QUERY / LLM_RESPONSE","TOOL_EXECUTION_START / END / ERROR","민감값은 로그 기록 전에 치환"]}
+  ]
+}
