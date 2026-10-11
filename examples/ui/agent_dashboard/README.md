@@ -47,13 +47,18 @@ The `step` event is the source of truth for whether an action succeeded. Most ac
 
 ## Regenerating the diagram
 
-`static/agent-architecture.html` is a self-contained Archify export generated from `agent-architecture.json`. The server serves it as-is, so there's no build step. After editing the spec, regenerate the HTML:
+`static/agent-architecture.html` is a self-contained Archify (3.0.1) export generated from `agent-architecture.json`. The server serves it as-is, so there's no build step. After editing the spec, validate it and then regenerate the HTML. Run these from the Archify repo's `archify/` directory:
 
 ```bash
-node /path/to/archify/bin/archify.mjs deliver architecture \
-  examples/ui/agent_dashboard/agent-architecture.json \
-  examples/ui/agent_dashboard/static/agent-architecture.html \
-  --quality showcase --json
+node bin/archify.mjs validate architecture <browser-use>/examples/ui/agent_dashboard/agent-architecture.json \
+  --quality showcase --repo-root <browser-use>
+node bin/archify.mjs deliver architecture <browser-use>/examples/ui/agent_dashboard/agent-architecture.json \
+  <browser-use>/examples/ui/agent_dashboard/static/agent-architecture.html \
+  --quality showcase --repo-root <browser-use> --json
 ```
+
+`deliver` also writes an `agent-architecture.delivery.json` receipt that contains absolute local paths. Delete it rather than committing it.
+
+The `showcase` profile also checks layout: crossing edges, labels that don't have room, and text that would render too small. The diagram is shown at about 930px wide on a 1440px screen, so the `viewBox` width must stay at or below 1240.
 
 The source links on each node point to `meta.repository.revision` in the spec, which is the fork commit whose line numbers match the `sources[].line` values. If you edit `browser_use/agent/service.py` or `browser_use/tools/registry/service.py`, update those line numbers and the revision together.

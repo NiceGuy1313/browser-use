@@ -3,8 +3,9 @@
   "diagram_type": "architecture",
   "meta": {
     "title": "Browser Use Agent Loop",
+    "output": "static/agent-architecture.html",
     "quality_profile": "showcase",
-    "viewBox": [1320, 720],
+    "viewBox": [1240, 720],
     "repository": {
       "url": "https://github.com/NiceGuy1313/browser-use",
       "provider": "github",
