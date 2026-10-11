@@ -23,7 +23,13 @@ from browser_use.tools.registry.views import (
 	RegisteredAction,
 	SpecialActionParameters,
 )
-from browser_use.utils import is_new_tab_page, match_url_with_domain_pattern, time_execution_async
+from browser_use.utils import (
+	collect_sensitive_data_values,
+	is_new_tab_page,
+	match_url_with_domain_pattern,
+	redact_sensitive_string,
+	time_execution_async,
+)
 
 Context = TypeVar('Context')
 
@@ -391,9 +397,25 @@ class Registry(Generic[Context]):
 
 			# All functions are now normalized to accept kwargs only
 			# Call with params and unpacked special context
+			started_at = asyncio.get_running_loop().time()
 			try:
-				return await action.function(params=validated_params, **special_context)
+				logged_params = redact_sensitive_string(str(params), collect_sensitive_data_values(sensitive_data))
+				logger.debug('[TOOL_EXECUTION_START] action=%s params=%s', action_name, logged_params)
+				result = await action.function(params=validated_params, **special_context)
+				logger.debug(
+					'[TOOL_EXECUTION_END] action=%s result_type=%s duration_seconds=%.3f',
+					action_name,
+					type(result).__name__,
+					asyncio.get_running_loop().time() - started_at,
+				)
+				return result
 			except Exception as e:
+				logger.debug(
+					'[TOOL_EXECUTION_ERROR] action=%s error_type=%s duration_seconds=%.3f',
+					action_name,
+					type(e).__name__,
+					asyncio.get_running_loop().time() - started_at,
+				)
 				raise
 
 		except BrowserError as e:

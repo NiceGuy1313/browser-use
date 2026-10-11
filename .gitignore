@@ -85,3 +85,6 @@ product_extraction.py
 plot.py
 
 .claude/
+
+# Agent dashboard run traces
+examples/ui/agent_dashboard/runs/

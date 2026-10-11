@@ -76,9 +76,11 @@ from browser_use.utils import (
 	URL_PATTERN,
 	_log_pretty_path,
 	check_latest_browser_use_version,
+	collect_sensitive_data_values,
 	get_browser_use_version,
 	has_url_negation,
 	is_placeholder_url,
+	redact_sensitive_string,
 	sanitize_url_candidate,
 	time_execution_async,
 	time_execution_sync,
@@ -1950,6 +1952,13 @@ class Agent(Generic[Context, AgentStructuredOutput]):
 		# Build kwargs for ainvoke
 		# Note: ChatBrowserUse will automatically generate action descriptions from output_format schema
 		kwargs: dict = {'output_format': self.AgentOutput, 'session_id': self.session_id}
+		self.logger.debug(
+			'[LLM_QUERY] step=%s model=%s messages=%s output_format=%s',
+			self.state.n_steps,
+			self.llm.model,
+			len(input_messages),
+			self.AgentOutput.__name__,
+		)
 
 		try:
 			response = await self.llm.ainvoke(input_messages, **kwargs)
@@ -1962,6 +1971,14 @@ class Agent(Generic[Context, AgentStructuredOutput]):
 			# cut the number of actions to max_actions_per_step if needed
 			if len(parsed.action) > self.settings.max_actions_per_step:
 				parsed.action = parsed.action[: self.settings.max_actions_per_step]
+
+			actions_json = json.dumps(
+				[action.model_dump(exclude_unset=True, mode='json') for action in parsed.action],
+				ensure_ascii=False,
+				default=str,
+			)
+			actions_json = redact_sensitive_string(actions_json, collect_sensitive_data_values(self.sensitive_data))
+			self.logger.debug('[LLM_RESPONSE] step=%s actions=%s', self.state.n_steps, actions_json)
 
 			if not (hasattr(self.state, 'paused') and (self.state.paused or self.state.stopped)):
 				log_response(parsed, self.tools.registry.registry, self.logger)

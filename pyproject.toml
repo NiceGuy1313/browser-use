@@ -115,7 +115,7 @@ build-backend = "hatchling.build"
 
 [tool.codespell]
 ignore-words-list = "bu,wit,dont,cant,wont,re-use,re-used,re-using,re-usable,thats,doesnt,doubleclick,finaly,finalY,iterm"
-skip = "*.json"
+skip = "*.json,examples/ui/agent_dashboard/static/agent-architecture.html"
 
 [tool.ruff]
 line-length = 130
